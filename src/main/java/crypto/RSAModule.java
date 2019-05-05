@@ -113,7 +113,7 @@ public class RSAModule {
     public boolean verifySignature() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, SignatureException {
         Signature signature = Signature.getInstance(getSignatureInstance());
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
-
+        //todo:nepotpuno
         byte[] newHash = generateDigest();
         signature.update(newHash);
         return signature.verify(parsers.get("signature").getSignature().getBytes());
@@ -147,8 +147,26 @@ public class RSAModule {
 
         rsa.init(Cipher.WRAP_MODE, publicKey);
         byte[] cryptedKey = rsa.doFinal(key.getEncoded());
-        //todo:staviti u filewriter
+        FileWriter envWriter = new FileWriter(destinationFile);
+        envWriter.setDescription("Envelope");
+        envWriter.setMethods(encryptionAlgorithm, "RSA");
+        envWriter.setKeyLengths(128, keyLength);
+        envWriter.setEnvelopeData(Base64.getEncoder().encode(cipherText));
+        envWriter.setEnvelopeCryptKey(cryptedKey);
+//        envWriter.writeData();
+    }
 
+    public void unwrap() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, IOException {
+        PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(new RSAPrivateKeySpec(modulus, privateExponent));
+        Cipher rsa = Cipher.getInstance("RSA");
+        rsa.init(Cipher.UNWRAP_MODE, privateKey);
+        byte[] key = rsa.doFinal(parsers.get("envelope").getEnvelopeCryptKey().getBytes());
+
+        SymmetricCipher cipher = new SymmetricCipher();
+        cipher.setSourceFile(sourceFile);
+        plainText = cipher.decryptAndReturn(parsers.get("envelope").getEnvelopeData().getBytes());
+
+        Files.write(destinationFile, plainText);
     }
 
     private byte[] generateDigest() throws NoSuchAlgorithmException, IOException {

@@ -33,6 +33,7 @@ public class SymmetricCipher {
 //    private FileWriter writer;
 
 
+    //todo: upis velicine kljuca
     public byte[] encryptAndReturn(boolean keyExists) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException {
         Cipher cipher = keyExists ? Cipher.getInstance(getScheme()) : Cipher.getInstance(algorithm + "/" + transformation + "/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, keyExists ? getKey() : generateKey());
@@ -56,7 +57,17 @@ public class SymmetricCipher {
 //        fileWriter.writeData();
     }
 
+    public byte[] decryptAndReturn(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        Cipher cipher = Cipher.getInstance(getScheme());
+        cipher.init(Cipher.DECRYPT_MODE, getKey());
+
+        plainText = cipher.doFinal(Base64.getDecoder().decode(data));
+
+        return plainText;
+    }
+
     public void decrypt() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, IOException {
+//        decryptAndReturn();
         Cipher cipher = Cipher.getInstance(getScheme());
         cipher.init(Cipher.DECRYPT_MODE, getKey());
 
