@@ -1,5 +1,8 @@
 package util;
 
+import java.util.LinkedList;
+import java.util.List;
+
 public class Constants {
     public static final String DESCRIPTION_KEY = "Description";
     public static final String MARGIN_START = "---BEGIN OS2 CRYPTO DATA---";
@@ -17,4 +20,16 @@ public class Constants {
     public static final String ENVDATA_KEY = "Envelope data";
     public static final String ENVCRYPT_KEY = "Envelope crypt key";
     public static final int CHARS_PER_LINE = 60;
+
+    public static byte[] parseBytes(String s) {
+        List<Byte> bytes = new LinkedList<>();
+        for (int i = 0; i < s.length(); i += 2) {
+            bytes.add((byte) Integer.parseInt(s.substring(i, i + 2), 16));
+        }
+        byte[] a = new byte[bytes.size()];
+        for (int i = 0; i < bytes.size(); i++) {
+            a[i] = bytes.get(i);
+        }
+        return a;
+    }
 }

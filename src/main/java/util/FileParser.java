@@ -9,7 +9,7 @@ import static util.Constants.*;
 
 public class FileParser {
     private List<String> lines;
-    private Map<String, String> fields = new HashMap<>();
+    private Map<String, String> fields = new LinkedHashMap<>();
     private StringJoiner comments = new StringJoiner("\n");
 
     public FileParser(Path file) throws IOException {
@@ -18,10 +18,11 @@ public class FileParser {
         }
 
         lines = Files.readAllLines(file);
-            parse();
+        parse();
     }
+
     public FileParser(Path... files) throws IOException {
-        for(Path f : files) {
+        for (Path f : files) {
             lines = Files.readAllLines(f);
             parse();
         }
@@ -33,7 +34,7 @@ public class FileParser {
             comments.add(lines.get(i++));
         }
 
-        for (++i; lines.get(i).startsWith(MARGIN_END); ) {
+        for (++i; !lines.get(i).startsWith(MARGIN_END); ) {
             i = skipWhiteSpace(i);
             i = parseSimple(i + 1, lines.get(i).split(":")[0]);
 //            if (lines.get(i).startsWith(DESCRIPTION_KEY)) {
@@ -117,17 +118,18 @@ public class FileParser {
         }
     }
 
-
     private int parseSimple(int i, String key) {
         if (!fields.containsKey(key)) {
             fields.put(key, "");
         }
+        StringJoiner joiner = new StringJoiner(",");
+//        joiner.add(fields.get(key));
         for (; (lines.get(i).startsWith("\t") || lines.get(i).isEmpty()) && !lines.get(i).equals(MARGIN_END); i++) {
             if (!lines.get(i).isEmpty()) {
-                fields.put(key, fields.get(key) + "\n" + lines.get(i));
+                joiner.add(lines.get(i).trim());
             }
         }
-
+        fields.put(key, joiner.toString());
         return i;
     }
 
@@ -139,7 +141,7 @@ public class FileParser {
     }
 
     public List<String> getMethods() {
-        String[] methods = fields.get(METHOD_KEY).split("\n");
+        String[] methods = fields.get(METHOD_KEY).split(",");
         return Arrays.asList(methods);
     }
 
@@ -155,22 +157,17 @@ public class FileParser {
         return fields.get(FILENAME_KEY);
     }
 
-    public String getData() {
-        StringBuilder builder = new StringBuilder();
-        for (String s : fields.get(DATA_KEY).split("\n")) {
-            builder.append(s);
-        }
-
-        return builder.toString();
+    public byte[] getData() {
+        return Base64.getDecoder().decode(parseBytes(fields.get(DATA_KEY).replaceAll(",", "")));
     }
 
-    public String getSecretkey() {
+    public byte[] getSecretkey() {
         StringBuilder builder = new StringBuilder();
         for (String s : fields.get(SECRETKEY_KEY).split("\n")) {
             builder.append(s);
         }
 
-        return builder.toString();
+        return parseBytes(builder.toString());
     }
 
     public String getModulus() {
@@ -179,7 +176,7 @@ public class FileParser {
             builder.append(s);
         }
 
-        return builder.toString();
+        return builder.toString().replaceAll(",", "");
     }
 
     public String getPrivateExponent() {
@@ -188,7 +185,7 @@ public class FileParser {
             builder.append(s);
         }
 
-        return builder.toString();
+        return builder.toString().replaceAll(",", "");
     }
 
     public String getPublicExponent() {
@@ -197,43 +194,23 @@ public class FileParser {
             builder.append(s);
         }
 
-        return builder.toString();
+        return builder.toString().replaceAll(",", "");
     }
 
-    public String getInitializationVector() {
-        StringBuilder builder = new StringBuilder();
-        for (String s : fields.get(INITVECTOR_KEY).split("\n")) {
-            builder.append(s);
-        }
-
-        return builder.toString();
+    public byte[] getInitializationVector() {
+        return parseBytes(fields.get(INITVECTOR_KEY).replaceAll(",", ""));
     }
 
-    public String getSignature() {
-        StringBuilder builder = new StringBuilder();
-        for (String s : fields.get(SIGNATURE_KEY).split("\n")) {
-            builder.append(s);
-        }
-
-        return builder.toString();
+    public byte[] getSignature() {
+        return parseBytes(fields.get(SIGNATURE_KEY).replaceAll(",", ""));
     }
 
-    public String getEnvelopeData() {
-        StringBuilder builder = new StringBuilder();
-        for (String s : fields.get(ENVDATA_KEY).split("\n")) {
-            builder.append(s);
-        }
-
-        return builder.toString();
+    public byte[] getEnvelopeData() {
+        return Base64.getDecoder().decode(parseBytes(fields.get(ENVDATA_KEY).replaceAll(",", "")));
     }
 
-    public String getEnvelopeCryptKey() {
-        StringBuilder builder = new StringBuilder();
-        for (String s : fields.get(ENVCRYPT_KEY).split("\n")) {
-            builder.append(s);
-        }
-
-        return builder.toString();
+    public byte[] getEnvelopeCryptKey() {
+        return parseBytes(fields.get(ENVCRYPT_KEY).replaceAll(",", ""));
     }
 
     public List<String> getKeyLengths() {
