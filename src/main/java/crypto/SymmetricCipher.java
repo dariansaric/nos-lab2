@@ -26,7 +26,7 @@ public class SymmetricCipher {
     private byte[] plainText;
 //    private FileWriter writer;
 
-    
+
     public void encrypt(boolean keyExists) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, BadPaddingException, IllegalBlockSizeException {
 
         Cipher cipher = keyExists ? Cipher.getInstance(getScheme()) : Cipher.getInstance(algorithm + "/" + transformation + "/NoPadding");
