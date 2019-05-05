@@ -16,4 +16,5 @@ public class Constants {
     public static final String DATA_KEY = "Data";
     public static final String ENVDATA_KEY = "Envelope data";
     public static final String ENVCRYPT_KEY = "Envelope crypt key";
+    public static final int CHARS_PER_LINE = 60;
 }

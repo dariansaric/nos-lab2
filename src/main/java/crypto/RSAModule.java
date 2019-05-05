@@ -26,6 +26,7 @@ public class RSAModule {
     private Path sourceFile;
     private String signatureAlgorithm;
 
+
     //todo: funkcionalnost digitalne omotnice
     public RSAModule(FileParser pubKeyParser, FileParser privKeyParser, FileParser signatureParser) {
         if (signatureParser != null) {
@@ -96,6 +97,8 @@ public class RSAModule {
 
 
     }
+
+//    public void
 
     private byte[] generateDigest() throws NoSuchAlgorithmException, IOException {
         MessageDigest digest = MessageDigest.getInstance(parsers.get("signature").getMethod());
