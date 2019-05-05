@@ -1,7 +1,9 @@
 package crypto;
 
 import util.FileParser;
+import util.FileWriter;
 
+import javax.crypto.*;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -17,16 +19,19 @@ import java.util.*;
 public class RSAModule {
     private static final List<Integer> AVAILABLE_KEY_LENGTHS = Arrays.asList(512, 1024, 2048);
     private Map<String, FileParser> parsers = new HashMap<>();
+    private Map<String, FileWriter> writers = new HashMap<>();
     private BigInteger modulus = BigInteger.ZERO;
     private BigInteger privateExponent = BigInteger.ZERO;
     private BigInteger publicExponent = BigInteger.ZERO;
-    //    private int keyLength;
+    private int keyLength;
     private byte[] signature;
     private byte[] plainText;
     private Path sourceFile;
+    private Path destinationFile;
     private String signatureAlgorithm;
+    private String encryptionAlgorithm;
 
-
+    //todo: inicijalizacijski vektor
     //todo: funkcionalnost digitalne omotnice
     public RSAModule(FileParser pubKeyParser, FileParser privKeyParser, FileParser signatureParser) {
         if (signatureParser != null) {
@@ -68,37 +73,83 @@ public class RSAModule {
             privateKey = KeyFactory.getInstance("RSA").generatePrivate(privateKeySpec);
         } else {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(getKeyLength());
+            keyPairGenerator.initialize(keyLength);
             KeyPair keyPair = keyPairGenerator.generateKeyPair();
             PublicKey publicKey = keyPair.getPublic();
             modulus = ((RSAPublicKey) publicKey).getModulus();
             publicExponent = ((RSAPublicKey) publicKey).getPublicExponent();
-
+            exportKey(true);
             privateKey = keyPair.getPrivate();
             privateExponent = ((RSAPrivateKey) privateKey).getPrivateExponent();
-
+            exportKey(false);
         }
 
         signature.initSign(privateKey);
         signature.update(Files.readAllBytes(sourceFile));
         this.signature = signature.sign();
-        //todo:ostatak??
+
+        FileWriter signWriter = new FileWriter(destinationFile);
+        signWriter.setDescription("Signature");
+        signWriter.setMethods(signatureAlgorithm.split("with"));
+        signWriter.setFileName(sourceFile);
+        signWriter.setKeyLengths(keyLength);
+        signWriter.setSignature(this.signature);
+        signWriter.writeData();
     }
 
-    public void verifySignature() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, SignatureException {
+    private void exportKey(boolean pub) {
+        FileWriter keyWriter = new FileWriter();
+        keyWriter.setDescription(pub ? "Public" : "Private" + " key");
+        keyWriter.setMethods("RSA");
+        keyWriter.setKeyLengths(keyLength);
+        keyWriter.setModulus(modulus);
+        if (pub) {
+            keyWriter.setPublicExponent(publicExponent);
+        } else {
+            keyWriter.setPrivateExponent(privateExponent);
+        }
+    }
+
+    public boolean verifySignature() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, SignatureException {
         Signature signature = Signature.getInstance(getSignatureInstance());
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
 
         byte[] newHash = generateDigest();
         signature.update(newHash);
-        boolean verified = signature.verify(parsers.get("signature").getSignature().getBytes());
-
-        //todo: ostatak
-
-
+        return signature.verify(parsers.get("signature").getSignature().getBytes());
     }
 
-//    public void
+    public void envelop(boolean keyExists) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
+        SymmetricCipher cipher = new SymmetricCipher();
+        cipher.setSourceFile(sourceFile);
+        cipher.setAlgorithm(encryptionAlgorithm);
+        cipher.setTransformation("ECB");
+        byte[] cipherText = cipher.encryptAndReturn(false);
+        SecretKey key = cipher.getSecretKey();
+
+        Cipher rsa = Cipher.getInstance("RSA");
+        PublicKey publicKey;
+        if (keyExists) {
+            RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(modulus, publicExponent);
+            publicKey = KeyFactory.getInstance("RSA").generatePublic(pubSpec);
+        } else {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+            keyPairGenerator.initialize(keyLength);
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+            publicKey = keyPair.getPublic();
+            modulus = ((RSAPublicKey) publicKey).getModulus();
+            publicExponent = ((RSAPublicKey) publicKey).getPublicExponent();
+            exportKey(true);
+            PrivateKey privateKey = keyPair.getPrivate();
+            privateExponent = ((RSAPrivateKey) privateKey).getPrivateExponent();
+            exportKey(false);
+        }
+
+        rsa.init(Cipher.WRAP_MODE, publicKey);
+        byte[] cryptedKey = rsa.doFinal(key.getEncoded());
+        //todo:staviti u filewriter
+
+    }
 
     private byte[] generateDigest() throws NoSuchAlgorithmException, IOException {
         MessageDigest digest = MessageDigest.getInstance(parsers.get("signature").getMethod());
@@ -124,5 +175,21 @@ public class RSAModule {
         }
 
         return signatureAlgorithm;
+    }
+
+    public Path getSourceFile() {
+        return sourceFile;
+    }
+
+    public void setSourceFile(Path sourceFile) {
+        this.sourceFile = sourceFile;
+    }
+
+    public Path getDestinationFile() {
+        return destinationFile;
+    }
+
+    public void setDestinationFile(Path destinationFile) {
+        this.destinationFile = destinationFile;
     }
 }

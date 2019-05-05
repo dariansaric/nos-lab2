@@ -12,9 +12,16 @@ import java.util.StringJoiner;
 import static util.Constants.*;
 
 public class FileWriter {
-    private Path files;
+    private Path file;
     private Map<String, String> fields = new HashMap<>();
 
+    public FileWriter(Path file) {
+        this.file = file;
+    }
+
+    public FileWriter() {
+
+    }
 
     public void writeData() throws IOException {
         StringJoiner joiner = new StringJoiner("\n", MARGIN_START + "\n", MARGIN_END + "\n");
@@ -33,7 +40,7 @@ public class FileWriter {
             joiner.add(v);
         });
 
-        Files.write(files, joiner.toString().getBytes());
+        Files.write(file, joiner.toString().getBytes());
     }
 
     public void setDescription(String description) {
