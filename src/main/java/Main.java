@@ -5,6 +5,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
@@ -18,7 +19,6 @@ public class Main {
     public static void main(String[] args) throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchPaddingException, InvalidKeySpecException, InvalidParameterSpecException, InvalidAlgorithmParameterException {
         //TODO: parsiranje argumenata naredbenog retka
         //TODO: prikaz opcija
-        //TODO: parser datoteke
 
 //        FileParser parser = new FileParser(Paths.get("./secret-key-test.txt.key"));
 //        FileParser parser1 = new FileParser(Paths.get("./crypted-data.os2"));
@@ -48,14 +48,29 @@ public class Main {
 
         Path input = Paths.get(args[0]);
 //        RSAModule module = new RSAModule(new FileParser(Paths.get("./pub-key.os2")), new FileParser(Paths.get("./priv-key.os2")), null);
-        RSAModule module = new RSAModule(new FileParser(Paths.get("./priv-key.os2")), new FileParser(Paths.get("./envelope.os2")));
-//        module.setSourceFile(input);
-//        module.setEncryptionAlgorithm("DESede");
-//        module.setKeyLength(1024);
-//        module.setEncryptionKeySize(112);
-//        module.setDestinationFile(Paths.get("./envelope.os2"));
+//        RSAModule module = new RSAModule(new FileParser(Paths.get("./priv-key.os2")), new FileParser(Paths.get("./envelope.os2")));
+        RSAModule module = new RSAModule();
+        module.setSourceFile(input);
+        module.setEncryptionAlgorithm("DESede");
+        module.setKeyLength(2048);
+        module.setEncryptionKeySize(112);
+        module.setSignatureAlgorithm("SHA256withRSA");
+        module.setDestinationFile(Paths.get("./envelope.os2"));
+//        module.setDestinationFile(Paths.get("./unvelope.os2"));
+//        module.wrap(false);
+//        module.unwrap();
+        module.signEnvelope(false, false, Paths.get("./signed-envelope.os2"));
+
+        module = new RSAModule(new FileParser(Paths.get("./signature-pub-key.os2")), null, new FileParser(Paths.get("./signed-envelope.os2")));
+        System.out.println(module.verifySignature(Files.readAllBytes(Paths.get("./envelope.os2"))));
+//        module.setDestinationFile(Paths.get("./unvelope.os2"));
+//        module.addParser("envelope", new FileParser(Paths.get("./envelope.os2")));
+//        module.addParser("private", new FileParser(Paths.get("./envelope-priv-key.os2")));
+//        module.updateParameters();
+//        module.unwrap();
+
+        module = new RSAModule(new FileParser(Paths.get("./envelope-priv-key.os2")), new FileParser(Paths.get("./envelope.os2")));
         module.setDestinationFile(Paths.get("./unvelope.os2"));
-//        module.envelop(false);
         module.unwrap();
     }
 }

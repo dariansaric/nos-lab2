@@ -21,10 +21,10 @@ import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.*;
 
+import static util.Constants.AVAILABLE_KEY_LENGTHS;
+
 public class RSAModule {
-    private static final List<Integer> AVAILABLE_KEY_LENGTHS = Arrays.asList(512, 1024, 2048);
     private Map<String, FileParser> parsers = new HashMap<>();
-    //    private Map<String, FileWriter> writers = new HashMap<>();
     private BigInteger modulus = BigInteger.ZERO;
     private BigInteger privateExponent = BigInteger.ZERO;
     private BigInteger publicExponent = BigInteger.ZERO;
@@ -37,8 +37,6 @@ public class RSAModule {
     private String encryptionAlgorithm;
     private int encryptionKeySize;
 
-    //todo: inicijalizacijski vektor
-    //todo: funkcionalnost digitalne omotnice
     public RSAModule(FileParser pubKeyParser, FileParser privKeyParser, FileParser signatureParser) {
         if (signatureParser != null) {
             parsers.put("signature", signatureParser);
@@ -62,6 +60,9 @@ public class RSAModule {
         encryptionAlgorithm = envParser.getMethod();
     }
 
+    public RSAModule() {
+    }
+
     private void extractPublicKey(FileParser pubKeyParser) {
         if (modulus.equals(BigInteger.ZERO)) {
             modulus = new BigInteger(pubKeyParser.getModulus(), 16);
@@ -78,7 +79,7 @@ public class RSAModule {
         privateExponent = new BigInteger(privKeyParser.getPrivateExponent(), 16);
     }
 
-    public void sign(boolean keyExists) throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IOException, SignatureException {
+    public void sign(boolean keyExists, byte[] data) throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IOException, SignatureException {
         Signature signature = Signature.getInstance(getSignatureInstance());
         PrivateKey privateKey;
         if (keyExists) {
@@ -91,14 +92,14 @@ public class RSAModule {
             PublicKey publicKey = keyPair.getPublic();
             modulus = ((RSAPublicKey) publicKey).getModulus();
             publicExponent = ((RSAPublicKey) publicKey).getPublicExponent();
-            exportKey(true);
+            exportKey(true, "signature-pub-key.os2");
             privateKey = keyPair.getPrivate();
             privateExponent = ((RSAPrivateKey) privateKey).getPrivateExponent();
-            exportKey(false);
+            exportKey(false, "signature-priv-key.os2");
         }
 
         signature.initSign(privateKey);
-        signature.update(Files.readAllBytes(sourceFile));
+        signature.update(data);
         this.signature = signature.sign();
 
         FileWriter signWriter = new FileWriter(destinationFile);
@@ -110,8 +111,8 @@ public class RSAModule {
         signWriter.writeData();
     }
 
-    private void exportKey(boolean pub) throws IOException {
-        FileWriter keyWriter = new FileWriter(Paths.get("./" + (pub ? "pub" : "priv") + "-key.os2"));
+    private void exportKey(boolean pub, String keyPath) throws IOException {
+        FileWriter keyWriter = new FileWriter(Paths.get(keyPath));
         keyWriter.setDescription(pub ? "Public" : "Private" + " key");
         keyWriter.setMethods("RSA");
         keyWriter.setKeyLengths(keyLength);
@@ -125,11 +126,11 @@ public class RSAModule {
         keyWriter.writeData();
     }
 
-    public boolean verifySignature() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, SignatureException, InvalidKeyException {
+    public boolean verifySignature(byte[] data) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, SignatureException, InvalidKeyException {
         Signature signature = Signature.getInstance(getSignatureInstance());
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
         signature.initVerify(publicKey);
-        signature.update(Files.readAllBytes(sourceFile));
+        signature.update(data);
         return signature.verify(parsers.get("signature").getSignature());
     }
 
@@ -154,10 +155,10 @@ public class RSAModule {
             publicKey = keyPair.getPublic();
             modulus = ((RSAPublicKey) publicKey).getModulus();
             publicExponent = ((RSAPublicKey) publicKey).getPublicExponent();
-            exportKey(true);
+            exportKey(true, "envelope-pub-key.os2");
             PrivateKey privateKey = keyPair.getPrivate();
             privateExponent = ((RSAPrivateKey) privateKey).getPrivateExponent();
-            exportKey(false);
+            exportKey(false, "envelope-priv-key.os2");
         }
 
         rsa.init(Cipher.ENCRYPT_MODE, publicKey);
@@ -186,6 +187,13 @@ public class RSAModule {
         plainText = cipher.decryptAndReturn(parsers.get("envelope").getEnvelopeData());
 
         Files.write(destinationFile, plainText);
+    }
+
+    public void signEnvelope(boolean envelopeKeyExists, boolean signatureKeyExists, Path signaturePath) throws IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchPaddingException, BadPaddingException, InvalidParameterSpecException, InvalidKeySpecException, IllegalBlockSizeException, SignatureException {
+        wrap(envelopeKeyExists);
+        Path envPath = destinationFile;
+        setDestinationFile(signaturePath);
+        sign(signatureKeyExists, Files.readAllBytes(envPath));
     }
 
     private byte[] generateDigest() throws NoSuchAlgorithmException, IOException {
@@ -244,5 +252,13 @@ public class RSAModule {
 
     public void setEncryptionKeySize(int keySize) {
         encryptionKeySize = keySize;
+    }
+
+    public void addParser(String key, FileParser parser) {
+        parsers.put(key, parser);
+    }
+
+    public void updateParameters() {
+        extractPrivateKey(parsers.get("private"));
     }
 }
