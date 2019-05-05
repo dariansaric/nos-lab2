@@ -21,7 +21,8 @@ import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.*;
 
-import static util.Constants.AVAILABLE_KEY_LENGTHS;
+import static util.Constants.SUPPORTED_RSA_KEY_LENGTHS;
+import static util.Constants.SUPPORTED_TRANSFORMATIONS;
 
 public class RSAModule {
     private Map<String, FileParser> parsers = new HashMap<>();
@@ -31,10 +32,12 @@ public class RSAModule {
     private int keyLength;
     private byte[] signature;
     private byte[] plainText;
+    private byte[] initVector;
     private Path sourceFile;
     private Path destinationFile;
     private String signatureAlgorithm;
     private String encryptionAlgorithm;
+    private String transformation;
     private int encryptionKeySize;
 
     public RSAModule(FileParser pubKeyParser, FileParser privKeyParser, FileParser signatureParser) {
@@ -57,7 +60,8 @@ public class RSAModule {
         parsers.put("private", privKeyParser);
         extractPrivateKey(privKeyParser);
         parsers.put("envelope", envParser);
-        encryptionAlgorithm = envParser.getMethod();
+        encryptionAlgorithm = envParser.getMethod().split("/")[0];
+        setEncryptionTransformation(envParser.getMethod().split("/")[1]);
     }
 
     public RSAModule() {
@@ -138,8 +142,12 @@ public class RSAModule {
         SymmetricCipher cipher = new SymmetricCipher();
         cipher.setSourceFile(sourceFile);
         cipher.setAlgorithm(encryptionAlgorithm);
-        cipher.setTransformation("ECB");
+        cipher.setTransformation(transformation);
+        if (!transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
+            cipher.setInitVector(initVector);
+        }
         cipher.setKeySize(encryptionKeySize);
+
         byte[] cipherText = cipher.encryptAndReturn(false);
         Key key = cipher.getSecretKey();
 
@@ -165,8 +173,11 @@ public class RSAModule {
         byte[] cryptedKey = rsa.doFinal(key.getEncoded());
         FileWriter envWriter = new FileWriter(destinationFile);
         envWriter.setDescription("Envelope");
-        envWriter.setMethods(encryptionAlgorithm, "RSA");
+        envWriter.setMethods(encryptionAlgorithm + "/" + transformation, "RSA");
         envWriter.setKeyLengths(cipher.getKeySize(), keyLength);
+        if (!transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
+            envWriter.setInitializationVector(initVector);
+        }
         envWriter.setEnvelopeData(Base64.getEncoder().encode(cipherText));
         envWriter.setEnvelopeCryptKey(cryptedKey);
         envWriter.writeData();
@@ -177,12 +188,13 @@ public class RSAModule {
         Cipher rsa = Cipher.getInstance("RSA");
         rsa.init(Cipher.DECRYPT_MODE, privateKey);
         byte[] key = rsa.doFinal(parsers.get("envelope").getEnvelopeCryptKey());
-//        Key key = rsa.unwrap(parsers.get("envelope").getEnvelopeCryptKey().getBytes(), "RSA", Cipher.SECRET_KEY);
 
         SymmetricCipher cipher = new SymmetricCipher();
-//        cipher.setSourceFile(sourceFile);
         cipher.setAlgorithm(encryptionAlgorithm);
-        cipher.setTransformation("ECB");
+        cipher.setTransformation(transformation);
+        if (!transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
+            cipher.setInitVector(parsers.get("envelope").getInitializationVector());
+        }
         cipher.setSecretKey(cipher.getKey(key));
         plainText = cipher.decryptAndReturn(parsers.get("envelope").getEnvelopeData());
 
@@ -203,7 +215,7 @@ public class RSAModule {
 
     private int getKeyLength() {
         int len = Integer.parseInt(parsers.get("signature").getKeyLengths().get(1));
-        if (!AVAILABLE_KEY_LENGTHS.contains(len)) {
+        if (!SUPPORTED_RSA_KEY_LENGTHS.contains(len)) {
             throw new IllegalArgumentException("Neispravna duljina kljuca");
         }
 
@@ -260,5 +272,13 @@ public class RSAModule {
 
     public void updateParameters() {
         extractPrivateKey(parsers.get("private"));
+    }
+
+    public void setEncryptionTransformation(String transformation) {
+        this.transformation = transformation;
+    }
+
+    public void setEncryptionInitVector(byte[] initVector) {
+        this.initVector = initVector;
     }
 }

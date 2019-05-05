@@ -12,16 +12,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.spec.InvalidParameterSpecException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import static util.Constants.SUPPORTED_ALGORITHMS;
+import static util.Constants.SUPPORTED_TRANSFORMATIONS;
 
 public class SymmetricCipher {
     public static final String KEY_PARSER = "key";
     public static final String DATA_PARSER = "data";
-    private static final List<String> SUPPORTED_ALGORITHMS = Arrays.asList("DESede", "AES", "DESede");
-    private static final List<String> SUPPORTED_TRANSFORMATIONS = Arrays.asList("ECB", "CBC", "OFB", "CFB", "CTR");
+
     //    private static final List<Integer> LEGAL_KEY_SIZES = Arrays.asList(128, 192, 256);
     private Map<String, FileParser> parsers = new HashMap<>();
     private byte[] initVector;
@@ -86,21 +86,34 @@ public class SymmetricCipher {
     }
 
     public byte[] decryptAndReturn(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
-        Cipher cipher = Cipher.getInstance(algorithm + "/" + transformation + "/ISO10126Padding");
-        cipher.init(Cipher.DECRYPT_MODE, key);
+        Cipher cipher = Cipher.getInstance(getScheme());
+        if (transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
+            if (key == null) {
+                cipher.init(Cipher.DECRYPT_MODE, getKey());
+            } else {
+                cipher.init(Cipher.DECRYPT_MODE, key);
+            }
+        } else {
+            if (key == null) {
+                cipher.init(Cipher.DECRYPT_MODE, getKey(), getVector());
+            } else {
+                cipher.init(Cipher.DECRYPT_MODE, key, getVector());
+            }
+        }
+
         return cipher.doFinal(data);
     }
 
     public void decrypt() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, IOException, InvalidAlgorithmParameterException {
-//        decryptAndReturn(parsers.get(DATA_PARSER).getData());
-        Cipher cipher = Cipher.getInstance(getScheme());
-        if (transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
-            cipher.init(Cipher.DECRYPT_MODE, getKey());
-        } else {
-            cipher.init(Cipher.DECRYPT_MODE, getKey(), getVector());
-        }
-
-        plainText = cipher.doFinal(parsers.get(DATA_PARSER).getData());
+        decryptAndReturn(parsers.get(DATA_PARSER).getData());
+//        Cipher cipher = Cipher.getInstance(getScheme());
+//        if (transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
+//            cipher.init(Cipher.DECRYPT_MODE, getKey());
+//        } else {
+//            cipher.init(Cipher.DECRYPT_MODE, getKey(), getVector());
+//        }
+//
+//        plainText = cipher.doFinal(parsers.get(DATA_PARSER).getData());
         Files.write(destinationFile, plainText);
     }
 
@@ -123,6 +136,9 @@ public class SymmetricCipher {
     }
 
     private String getScheme() {
+        if (parsers.get(KEY_PARSER) == null) {
+            return algorithm + "/" + transformation + "/ISO10126Padding";
+        }
         String method = parsers.get(KEY_PARSER).getMethod();
         String[] parts = method.split("/");
         if (!SUPPORTED_ALGORITHMS.contains(parts[0])
@@ -133,7 +149,6 @@ public class SymmetricCipher {
         algorithm = parts[0];
         transformation = parts[1];
         return method + "/ISO10126Padding";
-//                .replace("DES", "DESede") + "/ISO10126Padding";
     }
 
     public int getKeySize() {
@@ -179,7 +194,7 @@ public class SymmetricCipher {
         this.key = key;
     }
 
-    public void addParser(String key, FileParser parser) {
-        parsers.put(key, parser);
+    public void setInitVector(byte[] initVector) {
+        this.initVector = initVector;
     }
 }

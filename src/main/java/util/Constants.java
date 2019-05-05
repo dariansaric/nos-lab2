@@ -5,7 +5,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Constants {
-    public static final List<Integer> AVAILABLE_KEY_LENGTHS = Arrays.asList(512, 1024, 2048);
+    public static final List<Integer> SUPPORTED_RSA_KEY_LENGTHS = Arrays.asList(512, 1024, 2048);
+    public static final List<Integer> SUPPORTED_AES_KEY_LENGTHS = Arrays.asList(128, 192, 256);
+    public static final List<Integer> SUPPORTED_3DES_KEY_LENGTHS = Arrays.asList(112, 168);
+    public static final List<String> SUPPORTED_ALGORITHMS = Arrays.asList("DESede", "AES");
+    public static final List<String> SUPPORTED_TRANSFORMATIONS = Arrays.asList("ECB", "CBC", "OFB", "CFB", "CTR");
     static final String DESCRIPTION_KEY = "Description";
     static final String MARGIN_START = "---BEGIN OS2 CRYPTO DATA---";
     static final String MARGIN_END = "---END OS2 CRYPTO DATA---";
