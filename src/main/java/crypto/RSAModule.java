@@ -140,15 +140,22 @@ public class RSAModule {
 
     public void wrap(boolean keyExists) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException, InvalidParameterSpecException, InvalidAlgorithmParameterException {
         SymmetricCipher cipher = new SymmetricCipher();
-        cipher.setSourceFile(sourceFile);
-        cipher.setAlgorithm(encryptionAlgorithm);
-        cipher.setTransformation(transformation);
-        if (!transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
-            cipher.setInitVector(initVector);
+        byte[] cipherText;
+        if (!parsers.containsKey("secret")) {
+            cipher.setSourceFile(sourceFile);
+            cipher.setAlgorithm(encryptionAlgorithm);
+            cipher.setTransformation(transformation);
+            if (!transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
+                cipher.setInitVector(initVector);
+            }
+            cipher.setKeySize(encryptionKeySize);
+            cipherText = cipher.encryptAndReturn(false);
+        } else {
+            cipher.addParser("secret", parsers.get("secret"));
+            cipherText = cipher.encryptAndReturn(true);
         }
-        cipher.setKeySize(encryptionKeySize);
 
-        byte[] cipherText = cipher.encryptAndReturn(false);
+
         Key key = cipher.getSecretKey();
 
         Cipher rsa = Cipher.getInstance("RSA");

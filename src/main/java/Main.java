@@ -29,7 +29,6 @@ public class Main {
     // otvaranje omotnice: -f unwrap -d test1.txt -s envelope.os2 -ss envelope-priv-key.os2
     public static void main(String[] args) throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchPaddingException, InvalidKeySpecException, InvalidParameterSpecException, InvalidAlgorithmParameterException {
         //TODO: parsiranje argumenata naredbenog retka
-        //TODO: prikaz opcija
 
 
 //        Path input = Paths.get(args[0]);
@@ -71,7 +70,6 @@ public class Main {
 //        module.unwrap();
 
         CommandLineParser parser = new DefaultParser();
-//        HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd = null;
 
         try {
@@ -83,23 +81,24 @@ public class Main {
         try {
             switch (cmd.getOptionValue("f")) {
                 case "sign":
-                    createSignature(cmd);
+                    createSignature(cmd, Paths.get(cmd.getOptionValue("s")), Paths.get("d"));
                     break;
                 case "ver":
-                    verifySignature(cmd);
+                    boolean b = verifySignature(cmd, Paths.get(cmd.getOptionValue("s")), Paths.get(cmd.getOptionValue("sf")));
+                    System.out.println("Potpis je " + (b ? "" : "ne") + "valjan");
                     break;
                 case "wrap":
-                    wrapData(cmd);
+                    wrapData(cmd, Paths.get(cmd.getOptionValue("s")), Paths.get("d"));
                     break;
                 case "unwrap":
-                    unwrapData(cmd);
+                    unwrapData(cmd, Paths.get(cmd.getOptionValue("s")), Paths.get(cmd.getOptionValue("d")));
                     break;
-//            case "dseal":
-//                sealData(cmd);
-//                break;
-//            case "oseal":
-//                unsealData(cmd);
-//                break;
+                case "dseal":
+                    sealData(cmd);
+                    break;
+                case "oseal":
+                    unsealData(cmd);
+                    break;
                 default:
                     formatter.printHelp("test", options);
             }
@@ -109,14 +108,18 @@ public class Main {
 
     }
 
-    private static void unwrapData(CommandLine cmd) throws IOException, NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
-        Path input = Paths.get(cmd.getOptionValue("s"));
-        if (!cmd.hasOption("d")) {
-            formatter.printHelp("test", options);
-            System.exit(1);
+    private static void unsealData(CommandLine cmd) throws NoSuchAlgorithmException, SignatureException, InvalidKeySpecException, InvalidKeyException, IOException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchPaddingException {
+        if (verifySignature(cmd, Paths.get(cmd.getOptionValue("s")), Paths.get(cmd.getOptionValue("sf")))) {
+            unwrapData(cmd, Paths.get(cmd.getOptionValue("s")), Paths.get("d"));
         }
-        Path output = Paths.get("./" + cmd.getOptionValue("d"));
+    }
 
+    private static void sealData(CommandLine cmd) throws IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchPaddingException, BadPaddingException, InvalidParameterSpecException, InvalidKeySpecException, IllegalBlockSizeException, SignatureException {
+        wrapData(cmd, Paths.get(cmd.getOptionValue("s")), Paths.get(cmd.getOptionValue("d")));
+        createSignature(cmd, Paths.get(cmd.getOptionValue("d")), Paths.get(cmd.getOptionValue("sf")));
+    }
+
+    private static void unwrapData(CommandLine cmd, Path input, Path output) throws IOException, NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
         if (!cmd.hasOption("ss")) {
             formatter.printHelp("test", options);
             System.exit(1);
@@ -128,14 +131,7 @@ public class Main {
         module.unwrap();
     }
 
-    private static void wrapData(CommandLine cmd) throws IOException, NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidParameterSpecException, InvalidKeyException, InvalidKeySpecException {
-        Path input = Paths.get(cmd.getOptionValue("s"));
-        if (!cmd.hasOption("d")) {
-            formatter.printHelp("test", options);
-            System.exit(1);
-        }
-        Path output = Paths.get("./" + cmd.getOptionValue("d"));
-
+    private static void wrapData(CommandLine cmd, Path input, Path output) throws IOException, NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidParameterSpecException, InvalidKeyException, InvalidKeySpecException {
         if (!cmd.hasOption("ea")) {
             formatter.printHelp("test", options);
             System.exit(1);
@@ -202,31 +198,17 @@ public class Main {
 //        module.unwrap();
     }
 
-    private static void verifySignature(CommandLine cmd) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        Path sig = Paths.get(cmd.getOptionValue("s"));
-        if (!cmd.hasOption("sf")) {
-            formatter.printHelp("test", options);
-            System.exit(1);
-        }
-        Path sPath = Paths.get(cmd.getOptionValue("sf"));
+    private static boolean verifySignature(CommandLine cmd, Path input, Path sPath) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         if (!cmd.hasOption("sp")) {
             formatter.printHelp("test", options);
             System.exit(1);
         }
         Path pubKey = Paths.get(cmd.getOptionValue("sp"));
         RSAModule module = new RSAModule(new FileParser(pubKey), null, new FileParser(sPath));
-        System.out.println("Potpis je " + (module.verifySignature(Files.readAllBytes(sig)) ? "" : "ne") + "valjan");
+        return module.verifySignature(Files.readAllBytes(input));
     }
 
-    private static void createSignature(CommandLine cmd) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        Path input = Paths.get(cmd.getOptionValue("s"));
-        if (!cmd.hasOption("d")) {
-            formatter.printHelp("test", options);
-            System.exit(1);
-        }
-
-        Path output = Paths.get("./" + cmd.getOptionValue("d"));
-
+    private static void createSignature(CommandLine cmd, Path input, Path output) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         if (!cmd.hasOption("sa")) {
             formatter.printHelp("test", options);
             System.exit(1);

@@ -36,20 +36,19 @@ public class SymmetricCipher {
 //    private FileWriter writer;
 
 
-    //todo: upis velicine kljuca
     public byte[] encryptAndReturn(boolean keyExists) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidAlgorithmParameterException, InvalidParameterSpecException {
         Cipher cipher = keyExists ? Cipher.getInstance(getScheme()) : Cipher.getInstance(algorithm + "/" + transformation + "/ISO10126Padding");
         if (transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
             cipher.init(Cipher.ENCRYPT_MODE, keyExists ? getKey() : generateKey());
         } else {
-            cipher.init(Cipher.ENCRYPT_MODE, keyExists ? getKey() : generateKey(), keyExists ? getVector() : generateVector(cipher));
+            cipher.init(Cipher.ENCRYPT_MODE, keyExists ? getKey() : generateKey(), keyExists ? getVector() : generateVector());
         }
 
         cipherText = cipher.doFinal(Files.readAllBytes(sourceFile));
         return cipherText;
     }
 
-    private IvParameterSpec generateVector(Cipher c) {
+    private IvParameterSpec generateVector() {
         SecureRandom r = new SecureRandom();
         initVector = new byte[8];
         r.nextBytes(initVector);
@@ -196,5 +195,9 @@ public class SymmetricCipher {
 
     public void setInitVector(byte[] initVector) {
         this.initVector = initVector;
+    }
+
+    public void addParser(String key, FileParser parser) {
+        parsers.put(key, parser);
     }
 }
