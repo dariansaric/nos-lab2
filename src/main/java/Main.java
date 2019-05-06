@@ -28,9 +28,6 @@ public class Main {
     // stvaranje omotnice: -f wrap -s test.txt -d envelope.os2 -ea AES -el 128 -em ECB -rl 512
     // otvaranje omotnice: -f unwrap -d test1.txt -s envelope.os2 -ss envelope-priv-key.os2
     public static void main(String[] args) {
-        //TODO: parsiranje argumenata naredbenog retka
-
-
 //        Path input = Paths.get(args[0]);
 //        RSAModule module = new RSAModule(new FileParser(Paths.get("./pub-key.os2")),
 //                new FileParser(Paths.get("./priv-key.os2")),
@@ -68,7 +65,6 @@ public class Main {
 //        module = new RSAModule(new FileParser(Paths.get("./envelope-priv-key.os2")), new FileParser(Paths.get("./envelope.os2")));
 //        module.setDestinationFile(Paths.get("./unvelope.os2"));
 //        module.unwrap();
-
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
 
