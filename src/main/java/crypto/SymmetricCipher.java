@@ -15,14 +15,9 @@ import java.security.spec.InvalidParameterSpecException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static util.Constants.SUPPORTED_ALGORITHMS;
-import static util.Constants.SUPPORTED_TRANSFORMATIONS;
+import static util.Constants.*;
 
 public class SymmetricCipher {
-    public static final String KEY_PARSER = "key";
-    public static final String DATA_PARSER = "data";
-
-    //    private static final List<Integer> LEGAL_KEY_SIZES = Arrays.asList(128, 192, 256);
     private Map<String, FileParser> parsers = new HashMap<>();
     private byte[] initVector;
     private String algorithm;
@@ -33,10 +28,9 @@ public class SymmetricCipher {
     private byte[] plainText;
     private Key key;
     private int keySize;
-//    private FileWriter writer;
 
 
-    public byte[] encryptAndReturn(boolean keyExists) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidAlgorithmParameterException, InvalidParameterSpecException {
+    byte[] encryptAndReturn(boolean keyExists) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, BadPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidAlgorithmParameterException, InvalidParameterSpecException {
         Cipher cipher = keyExists ? Cipher.getInstance(getScheme()) : Cipher.getInstance(algorithm + "/" + transformation + "/ISO10126Padding");
         if (transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
             cipher.init(Cipher.ENCRYPT_MODE, keyExists ? getKey() : generateKey());
@@ -84,7 +78,7 @@ public class SymmetricCipher {
         fileWriter.writeData();
     }
 
-    public byte[] decryptAndReturn(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
+    byte[] decryptAndReturn(byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
         Cipher cipher = Cipher.getInstance(getScheme());
         if (transformation.equals(SUPPORTED_TRANSFORMATIONS.get(0))) {
             if (key == null) {
@@ -122,7 +116,7 @@ public class SymmetricCipher {
         return key;
     }
 
-    public SecretKey getKey(byte[] key) {
+    SecretKey getKey(byte[] key) {
         return new SecretKeySpec(key, algorithm);
     }
 
@@ -150,11 +144,11 @@ public class SymmetricCipher {
         return method + "/ISO10126Padding";
     }
 
-    public int getKeySize() {
+    int getKeySize() {
         return keySize;
     }
 
-    public void setKeySize(int keySize) {
+    void setKeySize(int keySize) {
 //        if (!LEGAL_KEY_SIZES.contains(keySize)) {
 //            throw new IllegalArgumentException("invalid key size");
 //        }
@@ -169,7 +163,7 @@ public class SymmetricCipher {
         return plainText;
     }
 
-    public void setSourceFile(Path sourceFile) {
+    void setSourceFile(Path sourceFile) {
         this.sourceFile = sourceFile;
     }
 
@@ -177,27 +171,27 @@ public class SymmetricCipher {
         this.destinationFile = destinationFile;
     }
 
-    public void setAlgorithm(String algorithm) {
+    void setAlgorithm(String algorithm) {
         this.algorithm = algorithm;
     }
 
-    public void setTransformation(String transformation) {
+    void setTransformation(String transformation) {
         this.transformation = transformation;
     }
 
-    public Key getSecretKey() {
+    Key getSecretKey() {
         return key;
     }
 
-    public void setSecretKey(Key key) {
+    void setSecretKey(Key key) {
         this.key = key;
     }
 
-    public void setInitVector(byte[] initVector) {
+    void setInitVector(byte[] initVector) {
         this.initVector = initVector;
     }
 
-    public void addParser(String key, FileParser parser) {
+    void addParser(String key, FileParser parser) {
         parsers.put(key, parser);
     }
 }

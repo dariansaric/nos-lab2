@@ -25,6 +25,8 @@ public class Constants {
     static final String DATA_KEY = "Data";
     static final String ENVDATA_KEY = "Envelope data";
     static final String ENVCRYPT_KEY = "Envelope crypt key";
+    public static final String KEY_PARSER = "key";
+    public static final String DATA_PARSER = "data";
     static final int CHARS_PER_LINE = 60;
 
     static byte[] parseBytes(String s) {

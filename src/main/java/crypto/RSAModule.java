@@ -30,8 +30,6 @@ public class RSAModule {
     private BigInteger privateExponent = BigInteger.ZERO;
     private BigInteger publicExponent = BigInteger.ZERO;
     private int keyLength;
-    private byte[] signature;
-    private byte[] plainText;
     private byte[] initVector;
     private Path sourceFile;
     private Path destinationFile;
@@ -104,14 +102,14 @@ public class RSAModule {
 
         signature.initSign(privateKey);
         signature.update(data);
-        this.signature = signature.sign();
+        byte[] signature1 = signature.sign();
 
         FileWriter signWriter = new FileWriter(destinationFile);
         signWriter.setDescription("Signature");
         signWriter.setMethods(signatureAlgorithm.split("with"));
         signWriter.setFileName(sourceFile);
         signWriter.setKeyLengths(keyLength);
-        signWriter.setSignature(this.signature);
+        signWriter.setSignature(signature1);
         signWriter.writeData();
     }
 
@@ -130,7 +128,7 @@ public class RSAModule {
         keyWriter.writeData();
     }
 
-    public boolean verifySignature(byte[] data) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, SignatureException, InvalidKeyException {
+    public boolean verifySignature(byte[] data) throws NoSuchAlgorithmException, InvalidKeySpecException, SignatureException, InvalidKeyException {
         Signature signature = Signature.getInstance(getSignatureInstance());
         PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
         signature.initVerify(publicKey);
@@ -203,7 +201,7 @@ public class RSAModule {
             cipher.setInitVector(parsers.get("envelope").getInitializationVector());
         }
         cipher.setSecretKey(cipher.getKey(key));
-        plainText = cipher.decryptAndReturn(parsers.get("envelope").getEnvelopeData());
+        byte[] plainText = cipher.decryptAndReturn(parsers.get("envelope").getEnvelopeData());
 
         Files.write(destinationFile, plainText);
     }
@@ -213,11 +211,6 @@ public class RSAModule {
         Path envPath = destinationFile;
         setDestinationFile(signaturePath);
         sign(signatureKeyExists, Files.readAllBytes(envPath));
-    }
-
-    private byte[] generateDigest() throws NoSuchAlgorithmException, IOException {
-        MessageDigest digest = MessageDigest.getInstance(parsers.get("signature").getMethod());
-        return digest.digest(Files.readAllBytes(sourceFile));
     }
 
     private int getKeyLength() {

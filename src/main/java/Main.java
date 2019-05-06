@@ -27,7 +27,7 @@ public class Main {
     // verificiranje potpisa: -f ver s test.txt -sf sig.os2 -sp signature-pub-key.os2
     // stvaranje omotnice: -f wrap -s test.txt -d envelope.os2 -ea AES -el 128 -em ECB -rl 512
     // otvaranje omotnice: -f unwrap -d test1.txt -s envelope.os2 -ss envelope-priv-key.os2
-    public static void main(String[] args) throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchPaddingException, InvalidKeySpecException, InvalidParameterSpecException, InvalidAlgorithmParameterException {
+    public static void main(String[] args) {
         //TODO: parsiranje argumenata naredbenog retka
 
 

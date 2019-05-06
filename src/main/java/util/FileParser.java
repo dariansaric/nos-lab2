@@ -21,13 +21,6 @@ public class FileParser {
         parse();
     }
 
-    public FileParser(Path... files) throws IOException {
-        for (Path f : files) {
-            lines = Files.readAllLines(f);
-            parse();
-        }
-    }
-
     private void parse() {
         int i = 0;
         while (!lines.get(i).equals(MARGIN_START)) {
